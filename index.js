@@ -160,14 +160,21 @@ class B3d4api {
     // send general message to host, and
     // expecting a response
     sendRequest(msg, timeout) {
-        if (!this.sessionId || !msg.request) return Promise.reject({});
-        // send out the message
-        this.sendMessage(msg);
-        // register the request, so that
-        // we can wait for it's response
+        if (!this.sessionId || !msg.request) {
+            return Promise.reject({
+                status: "ERROR",
+                message: "invalid session or invalid request"
+            });
+        }
+        // it's good to make a request
         let { request } = msg;
         return new Promise((resolve, reject) => {
+            // register the request, so that
+            // we can wait for it's response
             this._registerClientRequest(request, resolve, reject);
+            // send out the message
+            this.sendMessage(msg);
+            // set a timer if desired
             if (timeout) {
                 setTimeout(() => {
                     // reject the request
