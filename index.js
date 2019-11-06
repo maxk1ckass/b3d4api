@@ -132,6 +132,7 @@ class B3d4api {
 
     // handle request from host
     handleServerRequest(request, msg) {
+        if (typeof request !== "string") return;
         // trigger general message handler
         this._callMessageHandler(`request:`, msg);
         // trigger specific message handler
@@ -140,6 +141,7 @@ class B3d4api {
 
     // handle response from host
     handleServerResponse(response, msg) {
+        if (typeof response !== "string") return;
         // trigger general message handler
         this._callMessageHandler(`response:`, msg);
         // trigger specific message handler
@@ -148,21 +150,25 @@ class B3d4api {
 
     // set handlers for requests from host server
     onServerRequest(request, handler) {
+        if (typeof request !== "string" || typeof handler !== "function") return;
         this._setMessageHandler(`request:${request}`, handler);
     }
 
     // set handlers for responses from host server
     onServerResponse(response, handler) {
+        if (typeof response !== "string" || typeof handler !== "function") return;
         this._setMessageHandler(`response:${response}`, handler);
     }
 
     // set handler for onopen event, treat it as a special message
     onConnectionOpen(handler) {
+        if (typeof handler !== "function") return;
         this._setMessageHandler(`connection:open`, handler);
     }
 
     // set handler for onclose event, treat it as a special message
     onConnectionClose(handler) {
+        if (typeof handler !== "function") return;
         this._setMessageHandler(`connection:close`, handler);
     }
 
@@ -176,7 +182,7 @@ class B3d4api {
     // send general message to host, and
     // expecting a response
     sendRequest(msg, timeout) {
-        if (!this.sessionId || !msg.request) {
+        if (!this.sessionId || !msg || !msg.request) {
             return Promise.reject({
                 status: "ERROR",
                 message: "invalid session or invalid request"
@@ -191,7 +197,7 @@ class B3d4api {
             // send out the message
             this.sendMessage(msg);
             // set a timer if desired
-            if (timeout) {
+            if (typeof timeout === "number" && timeout) {
                 setTimeout(() => {
                     // reject the request
                     // will be ignored if request already resolved
@@ -206,7 +212,7 @@ class B3d4api {
 
     // start B3d4 websocket API connection
     connect(host) {
-        if (host) this.host = host;
+        if (typeof host === "string") this.host = host;
 
         // reject current connection request, if not resolved yet
         this._resolveClientRequest("connect", false, {
@@ -276,7 +282,11 @@ class B3d4api {
 
     // clear current status and restart websocket connection
     reconnect() {
-        if (!this.host) return;
+        if (!this.host)
+            return Promise.reject({
+                status: "ERROR",
+                message: "invalid host"
+            });
         // reset session
         if (this.ws) {
             this.ws.close();
@@ -312,6 +322,11 @@ class B3d4api {
 
     // send 'station_select' request, and expecting a response of promise
     selectStation(stationId, timeout = null) {
+        if (typeof stationId !== "string")
+            return Promise.reject({
+                status: "ERROR",
+                message: "invalid station id"
+            });
         return this.sendRequest(
             {
                 request: "station_select",
@@ -350,7 +365,7 @@ class B3d4api {
     }
 
     // send 'scan_record' request, and expecting a response of promise
-    startRecording(timeout = null) {
+    recordScan(timeout = null) {
         if (this.isPreviewing) this.stopPreview();
         return this.sendRequest(
             {
@@ -362,12 +377,17 @@ class B3d4api {
     }
 
     // send 'scan_process' request, and expecting a response of promise
-    processBuffer(bufferId, timeout = null, debug = false) {
+    processScan(scanId, timeout = null, debug = false) {
+        if (typeof scanId !== "string")
+            return Promise.reject({
+                status: "ERROR",
+                message: "invalid scan id"
+            });
         if (this.isPreviewing) this.stopPreview();
         return this.sendRequest(
             {
                 request: "scan_process",
-                scan_id: bufferId,
+                scan_id: scanId,
                 type: "HEADMODEL",
                 // formats: [],
                 debug
@@ -377,11 +397,16 @@ class B3d4api {
     }
 
     // send 'release_scan' request, and expecting a response of promise
-    releaseBuffer(bufferId, timeout = null) {
+    releaseScan(scanId, timeout = null) {
+        if (typeof scanId !== "string")
+            return Promise.reject({
+                status: "ERROR",
+                message: "invalid scan id"
+            });
         return this.sendRequest(
             {
                 request: "scan_release",
-                scan_id: bufferId
+                scan_id: scanId
             },
             timeout
         );
