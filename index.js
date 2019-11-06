@@ -10,6 +10,14 @@ import gltfutils from "./gltfutils";
 // these function will be called in B3d4api instance's context
 // i.e. 'this' will refer to a B3d4api instance
 const defaultMessageHandlers = {
+    "connection:open": function(event) {},
+    "connection:close": function(event) {
+        // reject current connection request, if not resolved yet
+        this._resolveClientRequest("connect", false, {
+            status: "ERROR",
+            message: "reset by websocket onclose()"
+        });
+    },
     "response:connect": function(msg) {
         if (msg.status === "OK") {
             this.sessionId = msg.session_id;
@@ -192,15 +200,14 @@ class B3d4api {
     connect(host) {
         if (host) this.host = host;
 
+        // reject current connection request, if not resolved yet
+        this._resolveClientRequest("connect", false, {
+            status: "ERROR",
+            message: "reset by new connect request"
+        });
+
         // start websocket session
-        try {
-            this.ws = new WebSocket(this.host);
-        } catch (e) {
-            return Promise.reject({
-                status: "ERROR",
-                message: e.message
-            });
-        }
+        this.ws = new WebSocket(this.host);
 
         // treat onopen as a special message
         this.ws.onopen = event => {
