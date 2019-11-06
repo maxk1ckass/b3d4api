@@ -48,11 +48,11 @@ const defaultMessageHandlers = {
     }
 };
 
-// Note to the format of "response:connect"
-//     since the same request name "connect" appears in
-//     both side of client request & server response,
-//     we use an addition field to tell the difference,
-//     instead of using two separate handler collections
+// Note to the format of "response:station_list"
+//     since the same identifier "station_list" could imply
+//     either a client request or a server response,
+//     we use an addition label to tell the difference.
+//     thus we avoided using two separate sets of handlers
 // Also, in this system,
 //     each message(event) can have multiple handlers working together,
 //     user can add handlers multiple times,
@@ -132,11 +132,17 @@ class B3d4api {
 
     // handle request from host
     handleServerRequest(request, msg) {
+        // trigger general message handler
+        this._callMessageHandler(`request:`, msg);
+        // trigger specific message handler
         this._callMessageHandler(`request:${request}`, msg);
     }
 
     // handle response from host
     handleServerResponse(response, msg) {
+        // trigger general message handler
+        this._callMessageHandler(`response:`, msg);
+        // trigger specific message handler
         this._callMessageHandler(`response:${response}`, msg);
     }
 
