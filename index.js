@@ -147,7 +147,7 @@ class B3d4api {
     // send general message to host, and
     // expecting a response
     sendRequest(msg, timeout) {
-        if (!this.sessionId || !msg.request) return;
+        if (!this.sessionId || !msg.request) return Promise.reject({});
         // send out the message
         this.sendMessage(msg);
         // register the request, so that
