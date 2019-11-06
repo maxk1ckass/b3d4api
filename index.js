@@ -11,17 +11,30 @@ import gltfutils from "./gltfutils";
 // i.e. 'this' will refer to a B3d4api instance
 const defaultMessageHandlers = {
     "response:connect": function(msg) {
-        this.sessionId = msg.session_id;
+        if (msg.status === "OK") {
+            this.sessionId = msg.session_id;
+        }
     },
     "response:station_list": function(msg) {
-        this.stationList = msg.stations;
+        if (msg.status === "OK") {
+            this.stationList = msg.stations;
+        }
     },
-    "response:station_select": function(msg) {},
+    "response:station_select": function(msg) {
+        if (msg.status === "OK") {
+            let station_id = msg.station_id;
+            this.currentStation = this.stationList[station_id];
+        }
+    },
     "response:preview_start": function(msg) {
-        this.isPreviewing = true;
+        if (msg.status === "OK") {
+            this.isPreviewing = true;
+        }
     },
     "response:preview_stop": function(msg) {
-        this.isPreviewing = false;
+        if (msg.status === "OK") {
+            this.isPreviewing = false;
+        }
     }
 };
 
@@ -169,7 +182,7 @@ class B3d4api {
     }
 
     // start B3d4 websocket API connection
-    start(host) {
+    connect(host) {
         if (host) this.host = host;
 
         // start websocket session
