@@ -13,9 +13,11 @@ const defaultMessageHandlers = {
     "connection:open": function(event) {},
     "connection:close": function(event) {
         // reject current connection request, if not resolved yet
+        let { code, reason, wasClean } = event;
         this._resolveClientRequest("connect", false, {
             status: "ERROR",
-            message: "reset by websocket onclose()"
+            message: "rejected by websocket onclose()",
+            event: { code, reason, wasClean }
         });
     },
     "response:connect": function(msg) {
