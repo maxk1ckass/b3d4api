@@ -193,7 +193,14 @@ class B3d4api {
         if (host) this.host = host;
 
         // start websocket session
-        this.ws = new WebSocket(this.host);
+        try {
+            this.ws = new WebSocket(this.host);
+        } catch (e) {
+            return Promise.reject({
+                status: "ERROR",
+                message: e.message
+            });
+        }
 
         // treat onopen as a special message
         this.ws.onopen = event => {
@@ -253,7 +260,7 @@ class B3d4api {
     }
 
     // clear current status and restart websocket connection
-    restart() {
+    reconnect() {
         if (!this.host) return;
         // reset session
         if (this.ws) {
@@ -265,7 +272,7 @@ class B3d4api {
         this.currentStation = null;
         this.isPreviewing = false;
         this.openClientRequests = {};
-        return this.start();
+        return this.connect();
     }
 
     // send 'session_init' request, and expecting a response of promise
