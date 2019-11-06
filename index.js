@@ -14,8 +14,9 @@ const defaultMessageHandlers = {
     "connection:close": function(event) {
         // reject current connection request, if not resolved yet
         let { code, reason, wasClean } = event;
-        this._resolveClientRequest("connect", false, {
+        this._respondClientRequest("connect", false, {
             status: "ERROR",
+            response_to: "connect",
             message: "rejected by websocket onclose()",
             event: { code, reason, wasClean }
         });
@@ -119,7 +120,7 @@ class B3d4api {
 
     // when reponses received from dev API server,
     // this function will be called to resolve the request promise,
-    _resolveClientRequest(request_id, success, msg) {
+    _respondClientRequest(request_id, success, msg) {
         let entry = this.openClientRequests[request_id];
         if (entry) {
             let { resolve, reject } = entry;
@@ -128,6 +129,14 @@ class B3d4api {
             // fullfil it
             success ? resolve(msg) : reject(msg);
         }
+    }
+
+    // reject an asynchronous action immediately
+    _rejectAction(message) {
+        return Promise.reject({
+            status: "ERROR",
+            message: message
+        });
     }
 
     // handle request from host
@@ -183,10 +192,7 @@ class B3d4api {
     // expecting a response
     sendRequest(msg, timeout) {
         if (!this.sessionId || !msg || !msg.request) {
-            return Promise.reject({
-                status: "ERROR",
-                message: "invalid session or invalid request"
-            });
+            return this._rejectAction("invalid session or invalid request");
         }
         // it's good to make a request
         let { request } = msg;
@@ -201,7 +207,7 @@ class B3d4api {
                 setTimeout(() => {
                     // reject the request
                     // will be ignored if request already resolved
-                    this._resolveClientRequest(request, false, {
+                    this._respondClientRequest(request, false, {
                         session_id: this.sessionId,
                         message: "timed out"
                     });
@@ -215,7 +221,7 @@ class B3d4api {
         if (typeof host === "string") this.host = host;
 
         // reject current connection request, if not resolved yet
-        this._resolveClientRequest("connect", false, {
+        this._respondClientRequest("connect", false, {
             status: "ERROR",
             message: "reset by new connect request"
         });
@@ -265,7 +271,7 @@ class B3d4api {
                 if (msg.response_to) {
                     // if it's an open respose,
                     // resolve the waiting promise
-                    this._resolveClientRequest(msg.response_to, true, msg);
+                    this._respondClientRequest(msg.response_to, true, msg);
                     this.handleServerResponse(msg.response_to, msg);
                 } else if (msg.request) {
                     this.handleServerRequest(msg.request, msg);
@@ -282,11 +288,9 @@ class B3d4api {
 
     // clear current status and restart websocket connection
     reconnect() {
-        if (!this.host)
-            return Promise.reject({
-                status: "ERROR",
-                message: "invalid host"
-            });
+        if (!this.host) {
+            return this._rejectAction("invalid host");
+        }
         // reset session
         if (this.ws) {
             this.ws.close();
@@ -322,11 +326,9 @@ class B3d4api {
 
     // send 'station_select' request, and expecting a response of promise
     selectStation(stationId, timeout = null) {
-        if (typeof stationId !== "string")
-            return Promise.reject({
-                status: "ERROR",
-                message: "invalid station id"
-            });
+        if (typeof stationId !== "string") {
+            return this._rejectAction("invalid station id");
+        }
         return this.sendRequest(
             {
                 request: "station_select",
@@ -338,7 +340,9 @@ class B3d4api {
 
     // send 'preview_start' request, and expecting a response of promise
     startPreview(timeout = null) {
-        if (this.isPreviewing) return Promise.resolve({});
+        if (this.isPreviewing) {
+            return this._rejectAction("already in previewing state");
+        }
         return this.sendRequest(
             {
                 request: "preview_start",
@@ -355,7 +359,9 @@ class B3d4api {
 
     // send 'preview_stop' request, and expecting a response of promise
     stopPreview(timeout = null) {
-        if (!this.isPreviewing) return Promise.resolve({});
+        if (!this.isPreviewing) {
+            return this._rejectAction("not in previewing state");
+        }
         return this.sendRequest(
             {
                 request: "preview_stop"
@@ -378,12 +384,10 @@ class B3d4api {
 
     // send 'scan_process' request, and expecting a response of promise
     processScan(scanId, timeout = null, debug = false) {
-        if (typeof scanId !== "string")
-            return Promise.reject({
-                status: "ERROR",
-                message: "invalid scan id"
-            });
         if (this.isPreviewing) this.stopPreview();
+        if (typeof scanId !== "string") {
+            return this._rejectAction("invalid scan id");
+        }
         return this.sendRequest(
             {
                 request: "scan_process",
@@ -398,11 +402,9 @@ class B3d4api {
 
     // send 'release_scan' request, and expecting a response of promise
     releaseScan(scanId, timeout = null) {
-        if (typeof scanId !== "string")
-            return Promise.reject({
-                status: "ERROR",
-                message: "invalid scan id"
-            });
+        if (typeof scanId !== "string") {
+            return this._rejectAction("invalid scan id");
+        }
         return this.sendRequest(
             {
                 request: "scan_release",
