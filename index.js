@@ -93,7 +93,7 @@ class B3d4api {
             this.messageHandlers[key] = [function() {}];
         }
         // remove all message handlers if (handler === null)
-        if (!handler) {
+        if (typeof handler !== "function") {
             // but alway keep the first one, which is the built-in handler
             this.messageHandlers[key] = this.messageHandlers[key].slice(1);
         } else {
@@ -159,25 +159,23 @@ class B3d4api {
 
     // set handlers for requests from host server
     onServerRequest(request, handler) {
-        if (typeof request !== "string" || typeof handler !== "function") return;
+        if (typeof request !== "string") return;
         this._setMessageHandler(`request:${request}`, handler);
     }
 
     // set handlers for responses from host server
     onServerResponse(response, handler) {
-        if (typeof response !== "string" || typeof handler !== "function") return;
+        if (typeof response !== "string") return;
         this._setMessageHandler(`response:${response}`, handler);
     }
 
     // set handler for onopen event, treat it as a special message
     onConnectionOpen(handler) {
-        if (typeof handler !== "function") return;
         this._setMessageHandler(`connection:open`, handler);
     }
 
     // set handler for onclose event, treat it as a special message
     onConnectionClose(handler) {
-        if (typeof handler !== "function") return;
         this._setMessageHandler(`connection:close`, handler);
     }
 
